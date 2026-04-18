@@ -4,7 +4,7 @@
 - [ ] Add wandb support for training visualization and logging
 - [ ] Add audio support
     - [ ] Find an audio dataset to train on (VCTK or LibriSpeech), convert to PyTorch dataset
-    - [ ] Feature extraction for audio (spectrograms)
+    - [ ] Feature extraction for audio (spectrograms -> 80-dimensional log Mel spectrogram)
     - [ ] Feature reconstruction to audio (inverse spectrograms), possibly HiFi-GAN
 - [ ] Handle audio in model architecture
     - [ ] Handle varying sequence lengths 

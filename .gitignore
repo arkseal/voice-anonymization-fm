@@ -1,8 +1,11 @@
-# checkpoints and data
+# Checkpoints and data
 checkpoints*/
 data/
 results*/
 result*
+
+# Pretrained Models used for training/inference
+pretrained_models/
 
 tester.ipynb
 

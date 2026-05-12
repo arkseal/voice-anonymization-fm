@@ -2,7 +2,7 @@ from pathlib import Path
 
 import torch
 
-from .data import DATASETS
+DATASETS = ['vctk']
 
 _PRECISION = {
     'full': torch.float32,

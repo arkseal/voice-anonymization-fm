@@ -16,7 +16,8 @@ class SinusoidalPositionEmbeddings(nn.Module):
         half_dim = self.emb_dim // 2
         i = torch.arange(half_dim, dtype=torch.float32, device=time.device)
         denominator = self.denom ** (2 * i / self.emb_dim)
-        args = time / denominator
+
+        args = (time * 1000) / denominator  # Need to stretch [0, 1] -> [0, 1000]
 
         sin_emb = args.sin()
         cos_emb = args.cos()
@@ -112,6 +113,11 @@ class FlowMatchingUNet(nn.Module):
             ]
         )
 
+        # Use a projection layer to reinsert content features directly into bottleneck
+        self.bottleneck_proj = nn.Conv1d(
+            down_channels[-1] + self.content_dim, down_channels[-1], 3, padding=1
+        )
+
         self.bottleneck = Block(down_channels[-1], down_channels[-1], self.cond_emb_dim)
 
         self.upsample = nn.ModuleList(
@@ -138,9 +144,11 @@ class FlowMatchingUNet(nn.Module):
         # Content Conditioning
         # Ensure time dimensions align
         if content_features.shape[-1] != x.shape[-1]:
-            print('INTERPOLATING')
+            # print('INTERPOLATING')
             content_features = F.interpolate(
-                content_features, size=x.shape[-1], mode='linear', align_corners=False
+                content_features,
+                size=x.shape[-1],
+                mode='nearest',
             )
 
         x = torch.cat([x, content_features], dim=1)
@@ -156,6 +164,11 @@ class FlowMatchingUNet(nn.Module):
         x = self.downsample[1](x)
 
         x = self.down_blocks[2](x, cond_emb)
+
+        bottleneck_content = F.interpolate(content_features, size=x.shape[-1], mode='nearest')
+        x = torch.cat([x, bottleneck_content], dim=1)
+        x = self.bottleneck_proj(x)
+
         x = self.bottleneck(x, cond_emb)
 
         x = self.upsample[0](x)

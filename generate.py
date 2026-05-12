@@ -2,7 +2,9 @@ from pathlib import Path
 
 import torch
 import torchvision.transforms.v2 as T
+from speechbrain.inference.speaker import EncoderClassifier
 from torchvision.utils import make_grid, save_image
+from transformers import HubertModel, SpeechT5HifiGan
 
 from src.data import get_norm
 from src.flow import _generate
@@ -10,6 +12,7 @@ from src.model import FlowMatchingUNet
 
 
 def generate(
+    input_audio,
     model_path,
     shape,
     nrow,
@@ -18,9 +21,24 @@ def generate(
     save_path=Path('./results.png'),
     generate_gif=True,
 ):
-    print('Loading Model...')
-    norm = get_norm(dataset_name)
-    model = FlowMatchingUNet(shape[1])
+    # TODO: Implement generation with anonymous speaker embedding
+    return
+    print('Loading Models...')
+    hubert_model = HubertModel.from_pretrained('facebook/hubert-base-ls960').to('xpu')
+    hubert_model.eval()
+    for param in hubert_model.parameters():
+        param.requires_grad = False
+
+    speaker_model = EncoderClassifier.from_hparams(
+        source='speechbrain/spkrec-ecapa-voxceleb',
+        savedir='pretrained_models/spkrec-ecapa-voxceleb',
+        # run_opts={"device": 'xpu'}
+    )
+    speaker_model.eval()
+    for param in speaker_model.parameters():
+        param.requires_grad = False
+
+    model = FlowMatchingUNet()
 
     state_dict = torch.load(model_path)
     model.load_state_dict(state_dict['model_state_dict'])
@@ -30,9 +48,7 @@ def generate(
     print('Loaded Model')
 
     print('Generating Samples...')
-    generated_images = _generate(
-        model, shape, device, **norm, leave_progress=True, store_all=generate_gif
-    )
+    generated_images = _generate(model, shape, device, leave_progress=True, store_all=generate_gif)
 
     save_image(
         make_grid(generated_images[-1] if generate_gif else generated_images, nrow=nrow),

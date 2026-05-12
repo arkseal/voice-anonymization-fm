@@ -1,10 +1,13 @@
 from pathlib import Path
 
+import flair
 import torch
 import torch.optim as optim
+import torchaudio
+import torchcodec
+import transformers
 from speechbrain.inference.speaker import EncoderClassifier
 from torch.amp import GradScaler, autocast
-from torchvision.utils import make_grid, save_image
 from tqdm.auto import tqdm, trange
 from transformers import HubertModel, Wav2Vec2FeatureExtractor
 
@@ -15,8 +18,8 @@ from src.utils import get_precision_dtype
 
 
 def train(
-    dataset_name='MNIST',
-    batch_size=512,
+    length=None,
+    batch_size=8,
     num_workers=2,
     lr=1e-4,
     epochs=25,
@@ -26,10 +29,7 @@ def train(
     precision='full',
     resume_path=None,
 ):
-    dataloader, shape, norm = get_train_data(
-        dataset_name=dataset_name, batch_size=batch_size, num_workers=num_workers
-    )
-    val_shape = (16,) + shape
+    dataloader = get_train_data(length=length, batch_size=batch_size, num_workers=num_workers)
 
     hubert_processor = Wav2Vec2FeatureExtractor.from_pretrained('facebook/hubert-base-ls960')
     hubert_model = HubertModel.from_pretrained('facebook/hubert-base-ls960').to(device)
@@ -40,7 +40,7 @@ def train(
     speaker_model = EncoderClassifier.from_hparams(
         source='speechbrain/spkrec-ecapa-voxceleb',
         savedir='pretrained_models/spkrec-ecapa-voxceleb',
-        run_opts={'device': device},
+        # run_opts={'device': device},
     )
     speaker_model.eval()
     for param in speaker_model.parameters():
@@ -69,12 +69,16 @@ def train(
         model.train()
         total_loss = 0
 
-        for x1, _ in tqdm(dataloader, desc=f'Epoch {epoch}', leave=False):
-            x1 = x1.to(device, non_blocking=True)
+        for hub_au, aud, mel in tqdm(dataloader, desc=f'Epoch {epoch}', leave=False):
+            hub_au, mel = hub_au.to(device, non_blocking=True), mel.to(device, non_blocking=True)
             optimizer.zero_grad()
 
-            with autocast(device, autocast_dtype):
-                loss = compute_loss(model, x1, device=device)
+            with torch.no_grad():
+                content_emb = hubert_model(hub_au).last_hidden_state.transpose(1, 2)
+                speaker_emb = speaker_model.encode_batch(aud).squeeze(1).to(device)
+
+            # with autocast(device, autocast_dtype):
+            loss = compute_loss(model, mel, content_emb, speaker_emb, device=device)
 
             if scaler:
                 scaler.scale(loss).backward()
@@ -84,23 +88,27 @@ def train(
                 loss.backward()
                 optimizer.step()
 
-            total_loss += loss.cpu().item()
+            total_loss += loss.item()
 
         avg_loss = total_loss / len(dataloader)
-        tqdm.write(f'Epoch: {epoch} Loss: {avg_loss:.4f}')
 
-        if epoch % 5 == 0:
+        if epoch % 100 == 0:
+            tqdm.write(f'Epoch: {epoch} Loss: {avg_loss:.4f}')
             model.eval()
             tqdm.write(f'Generating Samples for epoch {epoch}:')
 
             if scaler:
                 with autocast(device):
-                    generated_images = _generate(model, val_shape, device, **norm)
+                    _, generated_mel = _generate(
+                        model, content_emb[0:1], speaker_emb[0:1], None, device
+                    )
             else:
-                generated_images = _generate(model, val_shape, device, **norm)
+                _, generated_mel = _generate(
+                    model, content_emb[0:1], speaker_emb[0:1], None, device
+                )
 
-            image_save_path = save_path / f'epoch_{epoch:03d}.png'
-            save_image(make_grid(generated_images, nrow=4), image_save_path)
+            mel_save_path = save_path / f'epoch_{epoch:03d}.pt'
+            torch.save(generated_mel, mel_save_path)
 
             checkpoint = {
                 'epoch': epoch,
@@ -125,3 +133,7 @@ def train(
 
     final_model = {'model_state_dict': model.state_dict()}
     torch.save(final_model, checkpoint_path / 'model_final.pth')
+
+
+if __name__ == '__main__':
+    train(4, batch_size=4, num_workers=2, epochs=1000, device='xpu')

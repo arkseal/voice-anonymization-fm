@@ -3,7 +3,7 @@ from pathlib import Path
 import torch
 import torchaudio
 import torchaudio.transforms as T
-from transformers import Wav2Vec2FeatureExtractor
+from transformers import SpeechT5FeatureExtractor, Wav2Vec2FeatureExtractor
 
 
 class VCTK(torch.utils.data.Dataset):
@@ -45,6 +45,8 @@ class VCTKTransform:
             n_mels=80,
             normalized=True,
         )
+        self.mel_extractor = SpeechT5FeatureExtractor.from_pretrained('microsoft/speecht5_vc')
+
         self.hubert_processor = Wav2Vec2FeatureExtractor.from_pretrained(
             'facebook/hubert-base-ls960'
         )
@@ -57,9 +59,13 @@ class VCTKTransform:
             resampler = T.Resample(orig_freq=sr, new_freq=self.target_sr)
             waveform = resampler(waveform)
 
-        mel_spec = self.mel_transform(waveform).squeeze(0)
-
         wav_np = waveform.squeeze(0).numpy()
+
+        mel_spec = self.mel_extractor(
+            audio_target=wav_np, sampling_rate=self.target_sr, return_tensors='pt'
+        ).input_values
+        mel_spec = mel_spec.squeeze(0).transpose(0, 1)
+
         hubert_wav = self.hubert_processor(
             wav_np, sampling_rate=self.target_sr, return_tensors='pt'
         ).input_values.squeeze(0)

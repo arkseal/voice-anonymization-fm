@@ -8,7 +8,8 @@ dependencies = [
     "datasets>=2.14.4",
     "flair>=0.15.1",
     "huggingface-hub>=0.36.2",
-    "k2==1.24.4.dev20260423+cpu.torch2.11.0",
+    "k2==1.24.4.dev20260423+cuda13.0.torch2.11.0 ; platform_system == 'Linux'",
+    "k2==1.24.4.dev20260423+cpu.torch2.11.0 ; platform_system == 'Windows'",
     "numpy>=2.4.3",
     "speechbrain>=1.1.0",
     "torch>=2.11.0",
@@ -17,6 +18,7 @@ dependencies = [
     "torchvision>=0.26.0",
     "tqdm>=4.66.5",
     "transformers>=4.57.6",
+    "triton-xpu>=3.7.0 ; platform_system == 'Windows'",
 ]
 
 [dependency-groups]
@@ -27,20 +29,41 @@ dev = [
 
 [tool.uv]
 environments = [
+    "platform_system == 'Linux' and platform_machine == 'x86_64'",
     "platform_system == 'Windows'",
 ]
-find-links = ["https://k2-fsa.github.io/k2/cpu.html"]
+find-links = [
+    "https://k2-fsa.github.io/k2/cuda.html",
+    "https://k2-fsa.github.io/k2/cpu.html",
+]
 
 [tool.uv.sources]
-torch = [{ index = "pytorch-xpu" }]
-torchvision = [{ index = "pytorch-xpu" }]
-torchaudio = [{ index = "pytorch-xpu" }]
-triton-xpu = [{ index = "pytorch-xpu" }]
+torch = [
+    { index = "pytorch-cuda", marker = "platform_system == 'Linux'" },
+    { index = "pytorch-xpu", marker = "platform_system == 'Windows'" }
+]
+torchvision = [
+    { index = "pytorch-cuda", marker = "platform_system == 'Linux'" },
+    { index = "pytorch-xpu", marker = "platform_system == 'Windows'" }
+]
+torchaudio = [
+    { index = "pytorch-cuda", marker = "platform_system == 'Linux'" },
+    { index = "pytorch-xpu", marker = "platform_system == 'Windows'" }
+]
+triton-xpu = [
+    { index = "pytorch-xpu", marker = "platform_system == 'Windows'" }
+]
 speechbrain = { git = "https://github.com/speechbrain/speechbrain.git" }
+
+[[tool.uv.index]]
+name = "pytorch-cuda"
+url = "https://download.pytorch.org/whl/cu130"
+explicit = true
 
 [[tool.uv.index]]
 name = "pytorch-xpu"
 url = "https://download.pytorch.org/whl/xpu"
+explicit = true
 
 [tool.ruff]
 line-length = 100

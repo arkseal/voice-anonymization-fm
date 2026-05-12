@@ -35,7 +35,7 @@ def sample_ode(
     content_emb,
     speaker_emb,
     device='cpu',
-    steps=20,
+    steps=100,
     leave_progress=False,
     store_all=False,
 ):

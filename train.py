@@ -92,7 +92,7 @@ def train(
 
         avg_loss = total_loss / len(dataloader)
 
-        if epoch % 100 == 0:
+        if epoch % 10 == 0:
             tqdm.write(f'Epoch: {epoch} Loss: {avg_loss:.4f}')
             model.eval()
             tqdm.write(f'Generating Samples for epoch {epoch}:')
@@ -136,4 +136,4 @@ def train(
 
 
 if __name__ == '__main__':
-    train(4, batch_size=4, num_workers=2, epochs=1000, device='xpu')
+    train(128, batch_size=8, num_workers=4, epochs=50, device='xpu')

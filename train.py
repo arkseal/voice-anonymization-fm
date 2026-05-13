@@ -40,7 +40,7 @@ def train(
     speaker_model = EncoderClassifier.from_hparams(
         source='speechbrain/spkrec-ecapa-voxceleb',
         savedir='pretrained_models/spkrec-ecapa-voxceleb',
-        # run_opts={'device': device},
+        run_opts={'device': device},
     )
     speaker_model.eval()
     for param in speaker_model.parameters():
@@ -136,4 +136,4 @@ def train(
 
 
 if __name__ == '__main__':
-    train(128, batch_size=8, num_workers=4, epochs=50, device='xpu')
+    train(256*16, batch_size=16, num_workers=8, epochs=100, device='cuda:0')

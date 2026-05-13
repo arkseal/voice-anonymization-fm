@@ -68,7 +68,7 @@ def _generate(
     speaker_emb,
     vocoder,
     device,
-    steps=20,
+    steps=100,
     leave_progress=False,
     store_all=False,
 ):

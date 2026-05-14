@@ -1,3 +1,4 @@
+from collections.abc import Iterable
 from pathlib import Path
 
 import torch
@@ -11,6 +12,10 @@ _PRECISION = {
     'amp_bfloat16': torch.bfloat16,
     'amp_bf16': torch.bfloat16,
 }
+
+
+def is_iterable_not_string(obj):
+    return isinstance(obj, Iterable) and not isinstance(obj, (str, bytes))
 
 
 def get_precision_dtype(precision):

@@ -3,6 +3,8 @@ checkpoints*/
 data/
 results*/
 result*
+orig*
+*.pt
 
 # Pretrained Models used for training/inference
 pretrained_models/

@@ -2,6 +2,7 @@ from pathlib import Path
 
 import torch
 import torchaudio
+import torchaudio.functional as F
 import torchaudio.transforms as T
 from transformers import SpeechT5FeatureExtractor, Wav2Vec2FeatureExtractor
 
@@ -17,6 +18,7 @@ class VCTK(torch.utils.data.Dataset):
         super().__init__()
         assert start >= 0 and start < 88328, f'Start {start} is not in between 0 and 88328'
         assert length <= 88328 - start, f'Length {length} is greater than {88328 - start}'
+
         self.start = start
         self.length = length
         self.src = Path(data_src)
@@ -35,16 +37,7 @@ class VCTK(torch.utils.data.Dataset):
 class VCTKTransform:
     def __init__(self, target_sr=16000):
         self.target_sr = target_sr
-        self.mel_transform = T.MelSpectrogram(
-            sample_rate=target_sr,
-            n_fft=1024,
-            win_length=1024,
-            hop_length=256,
-            f_min=0,
-            f_max=8000,
-            n_mels=80,
-            normalized=True,
-        )
+
         self.mel_extractor = SpeechT5FeatureExtractor.from_pretrained('microsoft/speecht5_vc')
 
         self.hubert_processor = Wav2Vec2FeatureExtractor.from_pretrained(
@@ -56,8 +49,7 @@ class VCTKTransform:
 
         # Resample if needed
         if sr != self.target_sr:
-            resampler = T.Resample(orig_freq=sr, new_freq=self.target_sr)
-            waveform = resampler(waveform)
+            waveform = F.resample(waveform, sr, self.target_sr)
 
         wav_np = waveform.squeeze(0).numpy()
 

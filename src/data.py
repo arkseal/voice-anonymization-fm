@@ -43,7 +43,7 @@ def get_train_data(length=None, batch_size=8, num_workers=0):
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
-        shuffle=False,
+        shuffle=True,
         collate_fn=pad_collat_fn,
         num_workers=num_workers,
         pin_memory=True,

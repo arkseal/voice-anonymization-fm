@@ -9,7 +9,7 @@ import transformers
 from speechbrain.inference.speaker import EncoderClassifier
 from torch.amp import GradScaler, autocast
 from tqdm.auto import tqdm, trange
-from transformers import HubertModel, Wav2Vec2FeatureExtractor
+from transformers import HubertModel
 
 from src.data import get_train_data
 from src.flow import _generate, compute_loss
@@ -31,7 +31,6 @@ def train(
 ):
     dataloader = get_train_data(length=length, batch_size=batch_size, num_workers=num_workers)
 
-    hubert_processor = Wav2Vec2FeatureExtractor.from_pretrained('facebook/hubert-base-ls960')
     hubert_model = HubertModel.from_pretrained('facebook/hubert-base-ls960').to(device)
     hubert_model.eval()
     for param in hubert_model.parameters():
@@ -41,7 +40,7 @@ def train(
         source='speechbrain/spkrec-ecapa-voxceleb',
         savedir='pretrained_models/spkrec-ecapa-voxceleb',
         run_opts={'device': device},
-    )
+    ).to(device)
     speaker_model.eval()
     for param in speaker_model.parameters():
         param.requires_grad = False
@@ -75,10 +74,10 @@ def train(
 
             with torch.no_grad():
                 content_emb = hubert_model(hub_au).last_hidden_state.transpose(1, 2)
-                speaker_emb = speaker_model.encode_batch(aud).squeeze(1).to(device)
+                speaker_emb = speaker_model.encode_batch(aud).squeeze(1)
 
-            # with autocast(device, autocast_dtype):
-            loss = compute_loss(model, mel, content_emb, speaker_emb, device=device)
+            with autocast(device, autocast_dtype):
+                loss = compute_loss(model, mel, content_emb, speaker_emb, device=device)
 
             if scaler:
                 scaler.scale(loss).backward()
@@ -92,7 +91,7 @@ def train(
 
         avg_loss = total_loss / len(dataloader)
 
-        if epoch % 10 == 0:
+        if epoch % 1 == 0:
             tqdm.write(f'Epoch: {epoch} Loss: {avg_loss:.4f}')
             model.eval()
             tqdm.write(f'Generating Samples for epoch {epoch}:')
@@ -136,4 +135,4 @@ def train(
 
 
 if __name__ == '__main__':
-    train(256*16, batch_size=16, num_workers=8, epochs=100, device='cuda:0')
+    train(75000, batch_size=16, num_workers=16, epochs=10, device='cuda:0', precision='amp_bf16')

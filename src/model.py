@@ -5,7 +5,7 @@ import torch.nn.functional as F
 
 class SinusoidalPositionEmbeddings(nn.Module):
     def __init__(self, emb_dim, denom=10000):
-        super(SinusoidalPositionEmbeddings, self).__init__()
+        super().__init__()
         self.emb_dim = emb_dim
         self.denom = denom
 
@@ -31,7 +31,7 @@ class SinusoidalPositionEmbeddings(nn.Module):
 
 class Block(nn.Module):
     def __init__(self, in_ch, out_ch, cond_emb_dim):
-        super(Block, self).__init__()
+        super().__init__()
         self.conv1 = nn.Conv1d(in_ch, out_ch, 3, padding=1)
         self.conv2 = nn.Conv1d(out_ch, out_ch, 3, padding=1)
 
@@ -74,11 +74,14 @@ class FlowMatchingUNet(nn.Module):
         mel_bins=80,
         content_dim=768,
         speaker_dim=192,
-        down_channels=[128, 256, 512],
+        down_channels=None,
         time_emb_dim=256,
     ):
-        super(FlowMatchingUNet, self).__init__()
-        # SHAPE: (batch, mel_bins=80, time)
+        super().__init__()
+        if down_channels is None:
+            down_channels = [128, 256, 512]
+
+        # SHAPE: (batch, mel_bins, time)
         self.mel_bins = mel_bins
         self.content_dim = content_dim
         self.speaker_dim = speaker_dim

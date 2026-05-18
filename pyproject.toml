@@ -69,11 +69,22 @@ explicit = true
 line-length = 100
 
 [tool.ruff.lint]
-# Add B later
-select = ["E", "F", "I"]
+select = [
+    # pycodestyle
+    "E",
+    # Pyflakes
+    "F",
+    # pyupgrade
+    "UP",
+    # flake8-bugbear
+    "B",
+    # flake8-simplify
+    "SIM",
+    # isort
+    "I",
+]
 # Skip unused import rules (`F401`).
-# Skip unused variable rules (`F841`).
-ignore = ["F401", "F841"]
+ignore = ["F401"]
 
 [tool.ruff.format]
 line-ending = "native"

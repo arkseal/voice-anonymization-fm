@@ -3,8 +3,6 @@ from pathlib import Path
 
 import torch
 
-DATASETS = ['vctk']
-
 _PRECISION = {
     'full': torch.float32,
     'half': torch.float16,
@@ -23,6 +21,8 @@ def get_precision_dtype(precision):
 
 
 def _validate_training_args(args):
+    if args.dataset_length > 88328:
+        raise ValueError(f'Dataset length must be less than 88328, not {args.dataset_length}')
     if not args.batch_size >= 1:
         raise ValueError(f'Batch size must be at least 1, not {args.batch_size}')
     if not args.num_workers >= 0:
@@ -47,34 +47,34 @@ def _validate_training_args(args):
 
 
 def _validate_generation_args(args):
-    if args.num_channels not in (1, 3):
-        raise ValueError(f'Number of channels must be either 1 or 3, not {args.num_channels}')
+    if not Path(args.input_audio_path).exists():
+        raise ValueError(f'Input audio path must exist, {args.input_audio_path} not found')
+    if not Path(args.speaker_emb_path).exists():
+        raise ValueError(f'Speaker embedding path must exist, {args.speaker_emb_path} not found')
     if not Path(args.model_path).exists():
         raise ValueError(f'Model path must exist, {args.model_path} not found')
 
     if not args.save_path:
-        args.save_path = './results.png'
+        args.save_path = './results.wav'
     args.save_path = Path(args.save_path)
-    if args.save_path.exists():
-        if (
-            'y'
-            not in input(f'Save path {args.save_path} already exists, overwrite? (Y/N): ').lower()
-        ):
-            raise ValueError(f'Save path {args.save_path} already exists')
+    if args.save_path.exists() and not args.overwrite:
+        raise ValueError(
+            f'Save path {args.save_path} already exists. Pass --overwrite to overwrite.'
+        )
 
 
 def validate_args(args):
     if not args.train and not args.generate:
         raise ValueError('Either train flag or generate flag must be used')
-    if args.device == 'cuda':
+    if 'cuda' in args.device:
         if not torch.cuda.is_available():
             raise ValueError('CUDA device was selected but CUDA is not availible')
+        if args.device == 'cuda':
+            args.device = 'cuda:0'
     elif args.device == 'xpu':
         if not torch.xpu.is_available():
             raise ValueError('XPU device was selected but XPU is not availible')
 
-    if args.dataset_name not in DATASETS:
-        raise ValueError(f'Dataset name must be in {DATASETS.keys()}, not {args.dataset_name}')
     if args.precision not in _PRECISION:
         print(f'{args.precision} precision unknown, using full precision')
 

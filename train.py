@@ -36,10 +36,12 @@ def train(
     for param in hubert_model.parameters():
         param.requires_grad = False
 
+    _kwargs = {'run_opts': {'device': device}} if device != 'xpu' else {}
+
     speaker_model = EncoderClassifier.from_hparams(
         source='speechbrain/spkrec-ecapa-voxceleb',
         savedir='pretrained_models/spkrec-ecapa-voxceleb',
-        run_opts={'device': device},
+        **_kwargs,
     ).to(device)
     speaker_model.eval()
     for param in speaker_model.parameters():
@@ -48,8 +50,12 @@ def train(
     model = FlowMatchingUNet().to(device)
     optimizer = optim.AdamW(model.parameters(), lr=lr)
 
-    scaler = GradScaler(device) if ('amp') in precision else None
+    use_amp = 'amp' in precision
+    use_bf16 = 'bf16' in precision or 'bfloat16' in precision
+    scaler = GradScaler() if (use_amp and not use_bf16) else None
     autocast_dtype = get_precision_dtype(precision)
+
+    device_type = 'cuda' if 'cuda' in device else ('xpu' if device == 'xpu' else 'cpu')
 
     start_epoch = 1
     if resume_path:
@@ -76,7 +82,7 @@ def train(
                 content_emb = hubert_model(hub_au).last_hidden_state.transpose(1, 2)
                 speaker_emb = speaker_model.encode_batch(aud).squeeze(1)
 
-            with autocast(device, autocast_dtype):
+            with autocast(device_type=device_type, dtype=autocast_dtype):
                 loss = compute_loss(model, mel, content_emb, speaker_emb, device=device)
 
             if scaler:
@@ -96,12 +102,7 @@ def train(
             model.eval()
             tqdm.write(f'Generating Samples for epoch {epoch}:')
 
-            if scaler:
-                with autocast(device):
-                    _, generated_mel = _generate(
-                        model, content_emb[0:1], speaker_emb[0:1], None, device
-                    )
-            else:
+            with autocast(device_type=device_type, dtype=autocast_dtype):
                 _, generated_mel = _generate(
                     model, content_emb[0:1], speaker_emb[0:1], None, device
                 )

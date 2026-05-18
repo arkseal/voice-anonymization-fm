@@ -122,3 +122,8 @@ This script loads `SpeechT5HifiGan`, converts the mel spectrogram to waveform, a
 - [2] Ronneberger, Olaf et al. "U-Net: Convolutional Networks for Biomedical Image Segmentation." [arXiv:1505.04597](https://arxiv.org/pdf/1505.04597)
 - [3] Janupalli, Pranay. "Understanding Sinusoidal Positional Encoding in Transformers." [Medium](https://medium.com/@pranay.janupalli/understanding-sinusoidal-positional-encoding-in-transformers-26c4c161b7cc)
 - [4] [keishihara/flow-matching](https://github.com/keishihara/flow-matching)
+- [5] Le, Matthew, et al. "Voicebox: Text-Guided Multilingual Universal Speech Generation at Scale." [arXiv:2306.15687](https://arxiv.org/abs/2306.15687)
+- [6] Mehta, Shivam, et al. "Matcha-TTS: A fast TTS architecture with conditional flow matching." [arXiv:2309.03199](https://arxiv.org/abs/2309.03199)
+- [7] Hsu, Wei-Ning, et al. "HuBERT: Self-Supervised Speech Representation Learning by Masked Prediction of Hidden Units." [arXiv:2106.07447](https://arxiv.org/abs/2106.07447)
+- [8] Desplanques, Brecht, et al. "ECAPA-TDNN: Emphasized Channel Attention, Propagation and Aggregation in TDNN Based Speaker Verification." [arXiv:2005.07143](https://arxiv.org/abs/2005.07143)
+- [9] Tomashenko, Natalia, et al. "The VoicePrivacy 2020 Challenge Evaluation Plan." [arXiv:2005.01387](https://arxiv.org/abs/2005.01387)

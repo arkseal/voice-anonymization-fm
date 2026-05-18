@@ -1,7 +1,7 @@
 [project]
 name = "voice-anonymization-fm"
 version = "0.1.0"
-description = "Add your description here"
+description = "Flow matching based speech anonymization with VCTK, HuBERT, and speaker embedding conditioning."
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
